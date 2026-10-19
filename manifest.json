@@ -3,14 +3,14 @@
   "short_name": "聊天",
   "description": "聊天",
   "lang": "zh-CN",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "https://koudai6.github.io/qi-mi/index.html",
+  "scope": "https://koudai6.github.io/qi-mi/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
-    { "src": "icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "https://koudai6.github.io/qi-mi/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }
