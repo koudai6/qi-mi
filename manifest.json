@@ -1,5 +1,4 @@
 {
-  "id": "/",
   "name": "聊天",
   "short_name": "聊天",
   "description": "聊天",
@@ -11,6 +10,7 @@
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-   "icons": [
+  "icons": [
     { "src": "icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" }
-   ]
+  ]
+}
