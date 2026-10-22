@@ -359,7 +359,7 @@ textarea{touch-action:pan-y}
 <script>
 (()=>{
 const $=id=>document.getElementById(id);
-const DEF_CFG={minDelay:30,maxDelay:120,cardMin:1,cardMax:3,emojiMix:true,oppTransfer:true,oppRedpacket:true,transferProb:13,redpacketProb:13,rejectProb:20,patProb:13,statusHours:4.5,quoteProb:20,callProb:5,callRejectProb:20,acceptProb:80,keepAlive:false,notify:false};
+const DEF_CFG={minDelay:30,maxDelay:120,cardMin:1,cardMax:3,emojiMix:true,stickerProb:20,emojiProb:30,oppTransfer:true,oppRedpacket:true,transferProb:13,redpacketProb:13,rejectProb:20,patProb:13,statusHours:4.5,quoteProb:20,callProb:5,callRejectProb:20,acceptProb:80,keepAlive:false,notify:false};
 const S={profile:{name:'对方',id:'chat_id_001',avatar:'',myAvatar:'',bg:'',myName:'我'},cfg:{...DEF_CFG},msgs:[],cards:[],groups:[{id:'public',name:'公共（未分组）',enabled:true}],cardSeq:1,status:{text:'',at:0},skin:{bm:'',bmc:'',bt:'',btc:'',br:0,fs:0,css:'',tg:'both',notail:false},skins:[]};
 let booted=false,timer,typing=false,aTimer=null,modalAt=0,modalSeq=0,quoted=null,editing=null;
 
@@ -483,10 +483,10 @@ $('sheetPlus').querySelectorAll('button').forEach(b=>b.onclick=()=>{
 });
 
 /* 回复设置：改完立即保存 */
-const FIELDS=[['minDelay','对方回复最快（秒）',1,3600],['maxDelay','对方回复最慢（秒）',1,3600],['cardMin','每次回复字卡最少张数',1,10],['cardMax','每次回复字卡最多张数',1,10],['transferProb','对方发转账概率 %',0,100],['redpacketProb','对方发红包概率 %',0,100],['acceptProb','对方收下我的转账/红包概率 %',0,100],['rejectProb','对方退回我的转账/红包概率 %',0,100],['patProb','对方拍一拍概率 %',0,100],['callProb','对方主动来电概率 %',0,100],['callRejectProb','对方拒接我的电话概率 %',0,100],['quoteProb','对方引用我的消息概率 %',0,100],['statusHours','状态自动切换间隔（小时）',0.5,72]];
+const FIELDS=[['minDelay','对方回复最快（秒）',1,3600],['maxDelay','对方回复最慢（秒）',1,3600],['cardMin','每次回复字卡最少张数',1,10],['cardMax','每次回复字卡最多张数',1,10],['transferProb','对方发转账概率 %',0,100],['redpacketProb','对方发红包概率 %',0,100],['acceptProb','对方收下我的转账/红包概率 %',0,100],['rejectProb','对方退回我的转账/红包概率 %',0,100],['patProb','对方拍一拍概率 %',0,100],['callProb','对方主动来电概率 %',0,100],['callRejectProb','对方拒接我的电话概率 %',0,100],['quoteProb','对方引用我的消息概率 %',0,100],['statusHours','状态自动切换间隔（小时）',0.5,72],['stickerProb','对方发送表情包概率 %',0,100],['emojiProb','对方发送 Emoji 概率 %',0,100]];
 const SWITCHES=[['emojiMix','表情包 / Emoji 混合发送'],['oppTransfer','允许对方发转账'],['oppRedpacket','允许对方发红包']];
 const CFG_GROUPS=[
-  ['字卡回复',['minDelay','maxDelay','cardMin','cardMax','quoteProb','emojiMix']],
+  ['字卡回复',['minDelay','maxDelay','cardMin','cardMax','quoteProb','emojiMix','stickerProb','emojiProb']],
   ['转账红包',['oppTransfer','oppRedpacket','transferProb','redpacketProb','acceptProb','rejectProb']],
   ['拍一拍',['patProb']],
   ['打电话',['callProb','callRejectProb']],
@@ -540,18 +540,19 @@ $('clr').onclick=()=>{$('sheet').hidden=true;askYes('确定清空全部聊天记
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function pool(){
   const on=id=>{const g=S.groups.find(x=>x.id===id);return !g||g.enabled!==false};
-  return S.cards.filter(c=>c.enabled!==false&&on(c.group)&&c.type!=='status'&&c.type!=='pat'&&c.type!=='mypat'&&(S.cfg.emojiMix||c.type==='text'));
+  return S.cards.filter(c=>c.enabled!==false&&on(c.group)&&c.type!=='status'&&c.type!=='pat'&&c.type!=='mypat'&&c.type!=='image'&&c.type!=='emoji');
 }
 function auto(){
   clearTimeout(aTimer);
-  if(!pool().length)return;
+  const mediaReady=!!S.cfg.emojiMix&&S.cards.some(c=>c.enabled!==false&&grpOn(c.group)&&((c.type==='image'&&S.cfg.stickerProb>0)||(c.type==='emoji'&&S.cfg.emojiProb>0)));
+  if(!pool().length&&!mediaReady)return;
   typing=true;render();
   const lo=S.cfg.minDelay,hi=Math.max(lo,S.cfg.maxDelay);
   aTimer=setTimeout(reply,(lo+Math.random()*(hi-lo))*1000);
 }
 async function reply(){
-  const p=pool();if(!p.length){typing=false;render(true);return}
-  const n=Math.min(p.length,S.cfg.cardMin+Math.floor(Math.random()*(S.cfg.cardMax-S.cfg.cardMin+1)));
+  const p=pool();
+  const n=p.length?Math.min(p.length,S.cfg.cardMin+Math.floor(Math.random()*(S.cfg.cardMax-S.cfg.cardMin+1))):0;
   const pick=[...p].sort(()=>Math.random()-.5).slice(0,n);
   for(const c of pick){
     typing=true;render();await sleep(700+Math.random()*900);typing=false;
@@ -565,6 +566,16 @@ async function reply(){
         if(mine.length){const t=mine[Math.floor(Math.random()*mine.length)];m.reply={mine:true,text:String(prev(t)).slice(0,60)}}
       }
     }
+    S.msgs.push(m);render();save();notifyMsg(m);
+  }
+  // 独立概率抽取对方表情包与 Emoji；均从现有字卡库取用
+  for(const [type,prob] of [['image',S.cfg.stickerProb],['emoji',S.cfg.emojiProb]]){
+    if(!S.cfg.emojiMix||Math.random()*100>=Number(prob||0))continue;
+    const choices=S.cards.filter(c=>c.type===type&&c.enabled!==false&&grpOn(c.group));
+    if(!choices.length)continue;
+    typing=true;render();await sleep(500+Math.random()*700);typing=false;
+    const c=choices[Math.floor(Math.random()*choices.length)],m={id:Date.now()+Math.random(),mine:false,t:Date.now()};
+    if(type==='image'){m.type='image';m.src=c.content;m.sticker=true}else{m.type='emoji';m.text=c.content}
     S.msgs.push(m);render();save();notifyMsg(m);
   }
   if(Math.random()*100<S.cfg.patProb){
@@ -970,6 +981,8 @@ function patText(who,c){
   const a=who==='me'?me:op,b=who==='me'?op:me;   /* a=发起方 b=被拍的人 */
   const v=c?c.content:'拍了拍';
   if(/%我的昵称%|%对方昵称%/.test(v))return v.replace(/%我的昵称%/g,a).replace(/%对方昵称%/g,b);
+  // 自适配：内容已明确写出「我」或昵称时，不再机械追加被拍者昵称
+  if(/我|%被拍者%/.test(v))return a+v.replace(/%被拍者%/g,b);
   return a+v+b;
 }
 function sendPat(c){
@@ -986,7 +999,7 @@ function patDlg(){
       inp.placeholder='新增内容，如：亲了亲';inp.maxLength=40;
       ab.onclick=()=>{const v=inp.value.trim();if(!v){toast('请输入内容');return}S.cards.push(mk('mypat',v,'public'));save();draw();if(!$('cardsPage').hidden)renderCards()};
       add.append(inp,ab);b.append(add);
-      b.append(h('div','hint','显示为「我的昵称 + 内容 + 对方昵称」，如：我的昵称亲了亲对方昵称。也可以自己写 %我的昵称%…%对方昵称% 来排顺序，对方发起时会自动互换。'));
+      b.append(h('div','hint','拍一拍内容会智能适配：若内容已包含「我」，就不会重复追加被拍者昵称；也可用 %我的昵称% 和 %对方昵称% 自定义顺序，对方发起时会自动互换。'));
       const rd=h('button','','随机拍一下');rd.onclick=()=>sendPat(null);b.append(rd);
       S.cards.filter(c=>c.type==='mypat').forEach(c=>{
         const r=h('div','grow'),t=h('button','',c.content),dl=h('button','mini','删除');
